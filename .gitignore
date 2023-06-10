@@ -1,0 +1,9 @@
+.ipynb_checkpoints
+.vscode
+__pycache__
+.DS_Store
+lib
+data/
+figs/
+output/
+plotting/scatter_input
