@@ -144,15 +144,8 @@ class GraphRandomization(CompleteRandomization):
         if not self.cached_B:
             self.B = self.get_two_ball()
             self.cached_B = True
-        z_pool = [] # treatment assignments
-        # V_pool = [] # cluster centers
-        # C_pool = [] # cluster indices
-        for _ in range(self.n_z):
-            V, C = self.three_net(self.B)
-            z = self.sample_z(V, C)
-            z_pool.append(z)
-            # V_pool.append(V)
-            # C_pool.append(C)
+        V, C = self.three_net(self.B)
+        z_pool = [self.sample_z(V, C) for _ in range(self.n_z)] # treatment assignments
         
         return np.array(z_pool)
     

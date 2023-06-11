@@ -3,7 +3,9 @@
 __pycache__
 .DS_Store
 lib
-data/
+*data/
 figs/
 output/
-plotting/scatter_input
+plotting/*_input
+
+cai_data.ipynb

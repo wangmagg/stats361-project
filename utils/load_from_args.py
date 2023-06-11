@@ -47,48 +47,94 @@ def get_fitness_fn(args, fitness_fn_name, expo_mdl):
     else:
         raise ValueError(f'Unrecognized fitness function: {fitness_fn_name}')
     return fitness_fn
-    
-def get_expo_model(args, expo_mdl_name):
+
+def _get_expo_model(args, expo_mdl_name):
     if expo_mdl_name  == 'frac-nbr-expo':
-        expo_mdl = FracNbrExpo(args.q)
+        if isinstance(args.q, list):
+            expo_mdl = [FracNbrExpo(q) for q in args.q]
+        else:
+            expo_mdl = FracNbrExpo(args.q)
     elif expo_mdl_name == 'one-nbr-expo':
         expo_mdl = OneNbrExpo()
     else:
         raise ValueError(f'Unrecognized exposure model: {expo_mdl_name}')
     return expo_mdl
 
-def get_rand_model(args, rand_mdl_name, A, dists, expo_mdl):
-    n = A.shape[0]
+def get_expo_model(args, expo_mdl_name):
+    if isinstance(expo_mdl_name, list):
+        all_expo_mdls = []
+        for e in expo_mdl_name:
+            expo_mdl = _get_expo_model(args, e)
+            if isinstance(expo_mdl, list):
+                all_expo_mdls.extend(expo_mdl)
+            else:
+                all_expo_mdls.append(expo_mdl)
+        return all_expo_mdls
+    else:
+        return _get_expo_model(args, expo_mdl_name)
 
+def _get_rand_model(args, rand_mdl_name, A, dists, expo_mdl):
     if rand_mdl_name == 'complete':
-        rand_mdl = CompleteRandomization(n, args.n_z, args.n_cutoff, args.seed)
+        rand_mdl = CompleteRandomization(args.n, args.n_z, args.n_cutoff, args.seed)
     elif 'restricted' in args.rand_mdl_name:
         fitness_fn = get_fitness_fn(args, args.fitness_fn_name, expo_mdl)
         if args.rand_mdl_name == 'restricted-genetic':
-            rand_mdl = RestrictedRandomizationGenetic(n, args.n_z, args.n_cutoff, fitness_fn, A, 
+            rand_mdl = RestrictedRandomizationGenetic(args.n, args.n_z, args.n_cutoff, fitness_fn, A, 
                                                       args.tourn_size, args.cross_k, args.cross_rate, 
                                                       args.mut_rate, args.genetic_iters, args.seed)
         else:
-            rand_mdl = RestrictedRandomization(n, args.n_z, args.n_cutoff, fitness_fn, A, args.seed)
+            rand_mdl = RestrictedRandomization(args.n, args.n_z, args.n_cutoff, fitness_fn, A, args.seed)
     elif rand_mdl_name == 'graph':
-        rand_mdl = GraphRandomization(n, args.n_z, args.n_cutoff, dists, A, args.seed)
+        rand_mdl = GraphRandomization(args.n, args.n_z, args.n_cutoff, dists, A, args.seed)
 
     return rand_mdl
 
-def get_outcome_model(args, outcome_mdl_name, expo_mdl, A):
+def get_rand_model(args, rand_mdl_name, A, dists, expo_mdl):
+    if isinstance(expo_mdl, list):
+        if isinstance(rand_mdl_name, list):
+            return [_get_rand_model(args, r, A, dists, e) for e in expo_mdl for r in rand_mdl_name]
+        else:
+            return [_get_rand_model(args, rand_mdl_name, A, dists, e) for e in expo_mdl]
+    else:
+        return  _get_rand_model(args, rand_mdl_name, A, dists, expo_mdl)
+
+def _get_outcome_model(args, outcome_mdl_name, expo_mdl, A):
     if 'additive' in outcome_mdl_name:
-        outcome_mdl = AdditiveInterference(args.delta, expo_mdl, A)
+        if isinstance(args.delta_size, list):
+            deltas = [d * args.tau for d in args.delta_size]
+            return [AdditiveInterference(delta, expo_mdl, A) for delta in deltas]
+        else:
+            return AdditiveInterference(args.delta_size*args.tau, expo_mdl, A)
     else:
         raise ValueError(f'Unrecognized outcome model: {outcome_mdl_name}')
-    return outcome_mdl
 
-def get_estimator(args, est_name):
+
+def get_outcome_model(args, outcome_mdl_name, expo_mdl, A):
+    if isinstance(expo_mdl, list):
+        all_outcome_mdls = []
+        for e in expo_mdl:
+            outcome_mdl = _get_outcome_model(args, outcome_mdl_name, e, A)
+            if isinstance(outcome_mdl, list):
+                all_outcome_mdls.extend(outcome_mdl)
+            else:
+                all_outcome_mdls.append(outcome_mdl)
+        return all_outcome_mdls
+    else:
+        return _get_outcome_model(args, outcome_mdl_name, expo_mdl, A)
+
+def _get_estimator(_, est_name):
     if est_name == 'diff-in-means':
         estimator = DiffMeans()
     else:
         raise ValueError(f'Unrecognized estimator: {est_name}')
 
     return estimator
+
+def get_estimator(_, est_name):
+    if isinstance(est_name, list):
+        return [_get_estimator(_, e) for e in est_name]
+    else:
+        return _get_estimator(_, est_name)
     
 def get_models(args, A, dists):
     expo_mdl = get_expo_model(args, args.expo_mdl_name)

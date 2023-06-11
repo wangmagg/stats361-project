@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import seaborn as sns
 from pathlib import Path
 from argparse import ArgumentParser
 
@@ -21,7 +22,7 @@ def config():
     parser.add_argument('--n', type=int, default=500)
     parser.add_argument('--n-iters', type=int, default=100)
 
-    parser.add_argument('--expo-mdl-name', type=str, default='frac-nbr-expo')
+    parser.add_argument('--expo-mdl-name', type=str, default='frac-nbr-expo-0.50')
     parser.add_argument('--rand-mdl-name', type=str, nargs='+',
                            default=['complete', 'restricted', 'restricted-genetic', 'graph'])
 
@@ -33,23 +34,25 @@ def config():
     return args
 
 def scatterplt_alloc(args):
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 
     for rand_mdl_name in args.rand_mdl_name:
-        in_subdir = Path(args.input_dir) / 'scatter_input' / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
+        in_subdir = Path(args.input_dir) / 'plotting_input' / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
         in_fname = f'rand-{rand_mdl_name}_expo-{args.expo_mdl_name}_xaxis-{args.xaxis_fn_name}_yaxis-{args.xaxis_fn_name}.pkl'
         
         with open(in_subdir / in_fname, 'rb') as input:
-            xvals, yvals, mdl_names = pickle.load(input)
+            xvals, yvals, tau_hats, mdl_names = pickle.load(input)
         
-        ax.scatter(xvals, yvals, label=rand_mdl_name, s=2, alpha=0.5)
+        ax[0].scatter(xvals, yvals, label=rand_mdl_name, s=2, alpha=0.5)
+        sns.kdeplot(data=tau_hats, ax=ax[1], label=rand_mdl_name)
 
-    plt.xlabel(args.xaxis_fn_name)
-    plt.ylabel(args.yaxis_fn_name)
-    plt.title(args.net_mdl_saved)
+    ax[0].set_xlabel(args.xaxis_fn_name)
+    ax[0].set_ylabel(args.yaxis_fn_name)
+
+    fig.suptitle(args.net_mdl_saved)
     plt.legend()
     
-    out_dir= Path(args.out_dir) / 'scatterplt_alloc' / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
+    out_dir= Path(args.out_dir) / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
     expo_mdl_full_name = mdl_names['expo_mdl']
     out_fname = f'{args.net_mdl_saved}_{expo_mdl_full_name}.png'
     if not out_dir.exists():

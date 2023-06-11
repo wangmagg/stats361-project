@@ -42,6 +42,13 @@ def config():
     genetic_args.add_argument('--mut-rate', type=float, default=0.01)
     genetic_args.add_argument('--genetic-iters', type=int, default=3)
 
+    outcome_args = parser.add_argument_group('outcome_mdl')
+    outcome_args.add_argument('--outcome-mdl-name', type=str, default='additive')
+    outcome_args.add_argument('--delta-size', type=float, default=0.5)
+
+    estimator_args = parser.add_argument_group('estimator')
+    estimator_args.add_argument('--est-name', type=str, default='diff-in-means')
+
     plt_args = parser.add_argument_group('plot')
     plt_args.add_argument('--xaxis_fn_name', type=str, default='smd')
     plt_args.add_argument('--yaxis_fn_name', type=str, default='frac-expo')
@@ -56,34 +63,57 @@ def get_axis_fns(args, expo_mdl):
 
     return xaxis_fn, yaxis_fn
 
-def make_scatter_input(args):
+def make_plotting_input(args):
     y_all, A, dists = get_data(args)
     expo_mdl = get_expo_model(args, args.expo_mdl_name)
     rand_mdl = get_rand_model(args, args.rand_mdl_name, A, dists, expo_mdl)
+    outcome_mdl = get_outcome_model(args, args.outcome_mdl_name, expo_mdl, A)
+    estimator = get_estimator(args, args.est_name)
+
     xaxis_fn, yaxis_fn = get_axis_fns(args, expo_mdl)
 
-    out_subdir = Path(args.out_dir) / 'scatter_input' / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
-    out_fname = f'rand-{args.rand_mdl_name}_expo-{args.expo_mdl_name}_xaxis-{args.xaxis_fn_name}_yaxis-{args.xaxis_fn_name}.pkl'
+    out_subdir = Path(args.out_dir) / 'plotting_input' / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
+    out_fname = f'rand-{args.rand_mdl_name}_expo-{expo_mdl.name}_xaxis-{args.xaxis_fn_name}_yaxis-{args.xaxis_fn_name}.pkl'
     mdl_names = {'rand_mdl':rand_mdl.name, 'expo_mdl': expo_mdl.name}
 
     if (out_subdir / out_fname).exists():
         print(f'{out_subdir / out_fname} already exists! Skipping...')
         return
     else:
-        y_0, _ = y_all[args.plt_iter]
+        y_0, y_1 = y_all[args.plt_iter]
         z_accepted, _ = rand_mdl(y_0)
-        xvals = xaxis_fn(z_accepted, y_0, A)
-        yvals = yaxis_fn(z_accepted, y_0, A)
+        y_obs = [outcome_mdl(z, y_0, y_1) for z in z_accepted]
+
+        scatter_xvals = xaxis_fn(z_accepted, y_0, A)
+        scatter_yvals = yaxis_fn(z_accepted, y_0, A)
+        density_tau_hat = [estimator(z, y).item() for (z, y) in zip(z_accepted, y_obs)]
 
         if not out_subdir.exists():
             out_subdir.mkdir(parents=True)
         print(f'Saving to {out_subdir / out_fname}...')
         with open(out_subdir / out_fname, 'wb') as output:
-            pickle.dump((xvals, yvals, mdl_names), output)
+            pickle.dump((scatter_xvals, scatter_yvals, density_tau_hat, mdl_names), output)
+            
+        # y_0_all, y_1_all = [y[0] for y in y_all], [y[1] for y in y_all]
+        # z_all = np.array([rand_mdl(y_0)[0][1] for y_0 in y_0_all])
+        # y_obs = np.array([outcome_mdl(z, y_0, y_1) for (z, y_0, y_1) in zip(z_all, y_0_all, y_1_all)])
+
+        # scatter_xvals = [xaxis_fn(z, y_0, A) for (z, y_0) in zip(z_all, y_0_all)]
+        # scatter_yvals = [yaxis_fn(z, y_0, A) for (z, y_0) in zip(z_all, y_0_all)]
+        # density_tau_hat = [estimator(z, y).item() for (z, y) in zip(z_all, y_obs)]
+
+        # if not out_subdir.exists():
+        #     out_subdir.mkdir(parents=True)
+        # print(f'Saving to {out_subdir / out_fname}...')
+        # with open(out_subdir / out_fname, 'wb') as output:
+        #     pickle.dump((scatter_xvals, scatter_yvals, density_tau_hat, mdl_names), output)
+
+
+
 
 if __name__ == "__main__":
     args = config()
-    make_scatter_input(args)
+    make_plotting_input(args)
 
     
   

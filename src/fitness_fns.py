@@ -8,11 +8,18 @@ class Smd:
     
     def __call__(self, z_pool, X, A):
         # standardize X
-        X_norm = (X - np.mean(X)) / np.std(X)
+        if X.ndim == 2:
+            X_norm = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+        else:
+            X_norm = (X - np.mean(X)) / np.std(X)
 
         # calculate group means and return difference
-        mean_1 = np.matmul(z_pool, X_norm) / np.sum(z_pool, axis=1)
-        mean_0 = np.matmul(1 - z_pool, X_norm) / np.sum(z_pool, axis=1)
+        if z_pool.ndim == 2:
+            mean_1 = np.matmul(z_pool, X_norm) / np.sum(z_pool, axis=1)
+            mean_0 = np.matmul(1 - z_pool, X_norm) / np.sum(1 - z_pool, axis=1)
+        else:
+            mean_1 = np.matmul(z_pool, X_norm) / np.sum(z_pool)
+            mean_0 = np.matmul(1 - z_pool, X_norm) / np.sum(1 - z_pool)
 
         return mean_1 - mean_0
     
@@ -23,11 +30,18 @@ class SquareSmd:
     
     def __call__(self, z_pool, X, A):
         # standardize X
-        X_norm = (X - np.mean(X)) / np.std(X)
-
-        # calculate group means and return squared difference
-        mean_1 = np.matmul(z_pool, X_norm) / np.sum(z_pool, axis=1)
-        mean_0 = np.matmul(1 - z_pool, X_norm) / np.sum(z_pool, axis=1)
+        if X.ndim == 2:
+            X_norm = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+        else:
+            X_norm = (X - np.mean(X)) / np.std(X)
+            
+        # calculate group means and return difference
+        if z_pool.ndim == 2:
+            mean_1 = np.matmul(z_pool, X_norm) / np.sum(z_pool, axis=1)
+            mean_0 = np.matmul(1 - z_pool, X_norm) / np.sum(1 - z_pool, axis=1)
+        else:
+            mean_1 = np.matmul(z_pool, X_norm) / np.sum(z_pool)
+            mean_0 = np.matmul(1 - z_pool, X_norm) / np.sum(1 - z_pool)
 
         return np.square(mean_1 - mean_0)
 
@@ -39,8 +53,11 @@ class FracExposed:
     
     def __call__(self, z_pool, X, A):
         is_exposed = self.expo_mdl(z_pool, A)
-        return np.sum(is_exposed * (1 - z_pool), axis=1) / np.sum(1 - z_pool, axis=1)
-
+        if z_pool.ndim == 2:
+            return np.sum(is_exposed * (1 - z_pool), axis=1) / np.sum(1 - z_pool, axis=1)
+        else:
+            return np.sum(is_exposed * (1 - z_pool)) / np.sum(1 - z_pool)
+            
 class SmdExpo:
     def __init__(self, expo_mdl, smd_weight, expo_weight):
         self.name = f'square-smd-{smd_weight:.2f}_frac-exposed-{expo_weight:.2f}'

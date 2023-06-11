@@ -34,17 +34,17 @@ def config():
     data_args.add_argument('--net-mdl-saved', type=str, default='ws_k-10_p-0.10')
     data_args.add_argument('--n', type=int, default=500)
     data_args.add_argument('--n-iters', type=int, default=100)
-    data_args.add_argument('--tau', type=float, default=0.6)
+    data_args.add_argument('--tau', type=float, default=0.4)
     data_args.add_argument('--seed', default=42)
     data_args.add_argument('--out-dir', type=str, default='output')
     
     expo_args = parser.add_argument_group('expo_mdl')
-    expo_args.add_argument('--expo-mdl-name', type=str, default='frac-nbr-expo-0.5')
-    expo_args.add_argument('--q', type=float, default=0.5)
+    expo_args.add_argument('--expo-mdl-name', type=str, nargs='+', default='frac-nbr-expo-0.5')
+    expo_args.add_argument('--q', type=float, nargs='+', default=0.5)
     
     outcome_args = parser.add_argument_group('outcome_mdl')
     outcome_args.add_argument('--outcome-mdl-name', type=str, default='additive')
-    outcome_args.add_argument('--delta', type=float, default=0.8)
+    outcome_args.add_argument('--delta-size', type=float, nargs='+', default=0.5)
 
     rand_args = parser.add_argument_group('rand_mdl')
     rand_args.add_argument('--rand-mdl-name', type=str, default='complete')
@@ -62,27 +62,28 @@ def config():
     genetic_args.add_argument('--genetic-iters', type=int, default=3)
     
     estimator_args = parser.add_argument_group('estimator')
-    estimator_args.add_argument('--est-name', type=str, default='diff-in-means')
+    estimator_args.add_argument('--est-name', type=str, nargs='+', default='diff-in-means')
 
     args = parser.parse_args()
 
     return args
 
 # perform trial with single data sample
-def perform_trial(y, expo_mdl, rand_mdl, outcome_mdl, estimator):
+def perform_trial(data, expo_mdl, rand_mdl, outcome_mdl, estimator):
+    y, assignment = data
     y_0, y_1 = y
+    z_accepted, chosen_idx = assignment 
 
-    z_accepted, chosen_idx = rand_mdl(y_0)
     y_obs = outcome_mdl(z_accepted[chosen_idx, :], y_0, y_1)
     tau_hat = estimator(z_accepted[chosen_idx, :], y_obs)
     pval = get_pval(chosen_idx, z_accepted, y_obs, estimator)
 
     trial_res = {'rand_mdl': rand_mdl.name,
-                    'expo_mdl': expo_mdl.name,
-                    'outcome_mdl': outcome_mdl.name,
-                    'estimator': estimator.name,
-                    'tau_hat': tau_hat,
-                    'pval': pval}
+                 'expo_mdl': expo_mdl.name,
+                 'outcome_mdl': outcome_mdl.name,
+                 'estimator': estimator.name,
+                 'tau_hat': tau_hat,
+                 'pval': pval}
     
     return trial_res
 
@@ -95,6 +96,7 @@ def save_trial_res(args, repeated_trial_res, out_dir, out_fname):
         mse = pd.NamedAgg(column="tau_diff", aggfunc=lambda x: np.mean(x**2)),
         rej_rate = pd.NamedAgg(column="pval", aggfunc=lambda x: np.mean(x < 0.05)))
 
+    print(repeated_trial_res_df)
     # save trial results
     if not out_dir.exists():
         out_dir.mkdir(parents=True)
@@ -104,28 +106,29 @@ def save_trial_res(args, repeated_trial_res, out_dir, out_fname):
 if __name__ == "__main__":
     args = config()    
     y_all, A, dists = get_data(args)
-    expo_mdl, rand_mdl, outcome_mdl, estimator = get_models(args, A, dists)
+    expo_mdls, rand_mdls, outcome_mdls, estimators = get_models(args, A, dists)
 
-    out_dir= Path(args.out_dir) / args.net_mdl_saved / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
-    out_fname = f'{rand_mdl.name}_{expo_mdl.name}_{estimator.name}.pkl'
+    out_dir = Path(args.out_dir) / args.net_mdl_saved / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
+    out_fname = f'{args.rand_mdl_name}.pkl'
 
     if (out_dir / out_fname).exists():
         print(f'{out_dir / out_fname} already exists! Skipping...')
+
     else:
-        print_log(args.net_mdl_saved, args.n, args.tau, expo_mdl.name, rand_mdl.name, outcome_mdl.name, estimator.name)
-
-        if args.mp:
-            with mp.Pool(4) as pool:
-                repeated_trial_res = pool.map(partial(perform_trial, 
-                                                    expo_mdl=expo_mdl, 
-                                                    rand_mdl=rand_mdl, 
-                                                    outcome_mdl=outcome_mdl, 
-                                                    estimator=estimator), y_all)
-        else:
-            repeated_trial_res = list(map(partial(perform_trial, 
-                                                    expo_mdl=expo_mdl, 
-                                                    rand_mdl=rand_mdl, 
-                                                    outcome_mdl=outcome_mdl, 
-                                                    estimator=estimator), tqdm(y_all)))
-
-        save_trial_res(args, repeated_trial_res, out_dir, out_fname)
+        print(f'Running simulations for: {out_dir / out_fname}')
+        all_trial_res = []
+        for (y_0, y_1) in tqdm(y_all):
+            for i, rand_mdl in enumerate(rand_mdls):
+                if i == 0 or rand_mdl.name != prev_rand_mdl.name:
+                    assignment = rand_mdl(y_0)
+                    prev_rand_mdl = rand_mdl
+                for expo_mdl in expo_mdls:
+                    if hasattr(rand_mdl, 'expo_mdl') and rand_mdl.expo_mdl.name != expo_mdl.name:
+                        continue
+                    for outcome_mdl in outcome_mdls:
+                        if hasattr(outcome_mdl, 'expo_mdl') and outcome_mdl.expo_mdl.name != expo_mdl.name:
+                            continue
+                        for estimator in estimators:
+                            trial_res = perform_trial(((y_0, y_1), assignment), expo_mdl, rand_mdl, outcome_mdl, estimator)
+                            all_trial_res.append(trial_res)
+        save_trial_res(args, all_trial_res, out_dir, out_fname)
