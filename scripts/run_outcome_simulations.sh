@@ -4,9 +4,9 @@ declare -a net_mdl_arr=("ws_k-10_p-0.10" "er_p-0.02" "sb_blocks-5_wip-0.05_bwp-0
 
 for net in "${net_mdl_arr[@]}"
 do
-    for n in 100 500 1000
+    for n in 100 500 
     do 
-        for tau in 0 0.4 0.6 0.8 1.0 1.2
+        for tau in 0.0 0.4 0.8
         do
             for n_iters in 100 500 1000 
             do 

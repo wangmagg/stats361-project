@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for n in 100 500 1000
+for n in 100 500 
 do
     python3 -m simulate_net --n $n --net-mdl-name 'er' --p 0.02 --seed 42
     python3 -m simulate_net --n $n --net-mdl-name 'ws' --p 0.1 --k 10 --seed 42

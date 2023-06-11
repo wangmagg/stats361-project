@@ -14,6 +14,8 @@ def make_data(args):
         print(f"{y_subdir / y_fname} already exists! Skipping...")
         return
     else:
+        print(f"Generating {y_subdir / y_fname}")
+        
         rng = np.random.default_rng(args.seed)
 
         net_subdir = Path(args.data_dir) / 'networks' / args.net_mdl_saved

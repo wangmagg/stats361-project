@@ -9,6 +9,7 @@ from utils.load_from_args import get_net
 
 
 def make_net(args):
+    net_mdl = get_net(args)
     net_subdir = Path(args.data_dir) / 'networks' / f'{net_mdl.name}'
     net_fname = f'n-{args.n}.pkl'
 
@@ -16,8 +17,7 @@ def make_net(args):
         print(f'{net_subdir / net_fname} already exists! Skipping...')
         return
     else:
-        net_mdl = get_net(args)
-
+        print(f'Generating {net_subdir / net_fname}...')
         G, A = net_mdl(args.n)
         dists = dict(nx.all_pairs_bellman_ford_path_length(G))
 

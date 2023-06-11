@@ -2,13 +2,13 @@
 
 #SBATCH -t 48:00:00
 #SBATCH -J trial-simulation
-#SBATCH -o /home/mwang102/logs/trial-simulation."%j".out
+#SBATCH -o /home/users/mwang102/logs/trial-simulation-%j.out
 #SBATCH --mem=125000
 #SBATCH -p normal
 
-source /share/sw/open/anaconda/3/bin/activate
-conda activate /home/mwang102/projects/stats361-project/stats361-env
-cd /home/mwang102/project/stats361-project
+
+cd /home/users/mwang102/projects/stats361-project
+source stats361-env/bin/activate
 
 net_mdls=(ws_k-10_p-0.10 er_p-0.02 sb_blocks-5_wip-0.05_bwp-0.01 ba_m-5)
 net_mdl=${net_mdls[${SLURM_ARRAY_TASK_ID}-1]}
