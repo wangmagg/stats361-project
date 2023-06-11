@@ -11,7 +11,7 @@ def sample_po(n, mu, sigma, gamma, tau, A, rng):
 
 class AdditiveInterference():
     def __init__(self, delta, expo_mdl, A):
-        self.name = 'additive'
+        self.name = f'additive-{delta:.2f}'
         self.delta = delta
         self.expo_mdl = expo_mdl
         self.A = A

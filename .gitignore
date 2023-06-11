@@ -6,6 +6,6 @@ lib
 *data/
 figs/
 output/
+csvs/
+notebooks/
 plotting/*_input
-
-cai_data.ipynb

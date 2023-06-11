@@ -100,8 +100,12 @@ def save_trial_res(args, repeated_trial_res, out_dir, out_fname):
     # save trial results
     if not out_dir.exists():
         out_dir.mkdir(parents=True)
+
+    res_dict = {'params': vars(args),
+                'res': repeated_trial_res_df}
+    
     with open(out_dir / out_fname, 'wb') as output:
-        pickle.dump(repeated_trial_res_df, output)
+        pickle.dump(res_dict, output)
 
 if __name__ == "__main__":
     args = config()    

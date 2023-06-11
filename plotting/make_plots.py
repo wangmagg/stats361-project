@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 from argparse import ArgumentParser
+import pandas as pd
 
 from src.outcome_models import *
 from src.exposure_models import *
@@ -44,13 +45,19 @@ def scatterplt_alloc(args):
             xvals, yvals, tau_hats, mdl_names = pickle.load(input)
         
         ax[0].scatter(xvals, yvals, label=rand_mdl_name, s=2, alpha=0.5)
-        sns.kdeplot(data=tau_hats, ax=ax[1], label=rand_mdl_name)
+        sns.kdeplot(tau_hats, bw_adjust=1.5, ax=ax[1], fill=True, label=rand_mdl_name)
+
+
+    ax[1].axvline(x=args.tau, linestyle='--', color='black', label='tau', linewidth=1)
 
     ax[0].set_xlabel(args.xaxis_fn_name)
     ax[0].set_ylabel(args.yaxis_fn_name)
 
+    ax[1].set_xlabel('tau_hat')
+    ax[1].set_ylabel('count')
+    ax[1].legend()
+
     fig.suptitle(args.net_mdl_saved)
-    plt.legend()
     
     out_dir= Path(args.out_dir) / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
     expo_mdl_full_name = mdl_names['expo_mdl']
