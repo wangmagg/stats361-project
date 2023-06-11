@@ -7,6 +7,7 @@
 #SBATCH -p normal
 
 
+ml python/3.6.1
 cd /home/users/mwang102/projects/stats361-project
 source stats361-env/bin/activate
 
