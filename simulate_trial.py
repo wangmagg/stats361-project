@@ -3,7 +3,6 @@ import pandas as pd
 from pathlib import Path
 import pickle
 from argparse import ArgumentParser
-from functools import partial
 
 from src.outcome_models import *
 from src.exposure_models import *
@@ -27,7 +26,6 @@ def print_log(net_mdl_saved, n, tau, expo_mdl_name, rand_mdl_name, outcome_mdl_n
 
 def config():
     parser = ArgumentParser()
-    parser.add_argument('--mp', action='store_true')
 
     data_args = parser.add_argument_group('data')
     data_args.add_argument('--data-dir', type=str, default='data')
