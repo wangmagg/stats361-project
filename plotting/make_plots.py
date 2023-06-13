@@ -29,12 +29,27 @@ def config():
 
     parser.add_argument('--xaxis_fn_name', type=str, default='smd')
     parser.add_argument('--yaxis_fn_name', type=str, default='frac-expo')
+    parser.add_argument('--xaxis_title', type=str, default='Standardized Mean Difference')
+    parser.add_argument('--yaxis_title', type=str, default='Fraction of Control Units Exposed')
 
     args = parser.parse_args()
 
     return args
 
+def get_scatter_title(net_mdl_saved):
+    prefix = 'Accepted Allocations'
+    if 'ws' in net_mdl_saved:
+        return f'{prefix}: Watts-Strogatz'
+    if 'sb' in net_mdl_saved:
+        return f'{prefix}: Stochastic Block'
+    if 'ba' in net_mdl_saved:
+        return f'{prefix}: Barabasi-Albert'
+    if 'er' in net_mdl_saved:
+        return f'{prefix}: Erdos-Renyi'
+    
 def scatterplt_alloc(args):
+    # plt.rcParams['text.usetex'] = True
+
     fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 
     for rand_mdl_name in args.rand_mdl_name:
@@ -48,16 +63,21 @@ def scatterplt_alloc(args):
         sns.kdeplot(tau_hats, bw_adjust=1.5, ax=ax[1], fill=True, label=rand_mdl_name)
 
 
-    ax[1].axvline(x=args.tau, linestyle='--', color='black', label='tau', linewidth=1)
+    ax[1].axvline(x=args.tau, linestyle='--', color='black', label=r'$\tau$', linewidth=1)
 
-    ax[0].set_xlabel(args.xaxis_fn_name)
-    ax[0].set_ylabel(args.yaxis_fn_name)
+    ax[0].set_xlabel(args.xaxis_title, fontsize=14)
+    ax[0].set_ylabel(args.yaxis_title, fontsize=14)
+    ax[0].set_title('Interference vs Balance', fontsize=16)
 
-    ax[1].set_xlabel('tau_hat')
-    ax[1].set_ylabel('count')
-    ax[1].legend()
+    ax[1].set_xlabel(r'$\hat{\tau}$', fontsize=14)
+    ax[1].set_ylabel('Density', fontsize=14)
+    ax[1].set_title('Effect Estimate', fontsize=16)
+    #ax[1].legend()
 
-    fig.suptitle(args.net_mdl_saved)
+
+    fig.suptitle(get_scatter_title(args.net_mdl_saved), fontsize=18)
+    handles, labels = ax[1].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='lower center', ncol=5, bbox_to_anchor=(0.5, -0.1))
     
     out_dir= Path(args.out_dir) / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
     expo_mdl_full_name = mdl_names['expo_mdl']
@@ -65,7 +85,7 @@ def scatterplt_alloc(args):
     if not out_dir.exists():
         out_dir.mkdir(parents=True)
 
-    fig.savefig(out_dir / out_fname, bbox_inches = 'tight')
+    fig.savefig(out_dir / out_fname, bbox_inches = 'tight', dpi=600)
 
 if __name__ == "__main__":
     args = config()

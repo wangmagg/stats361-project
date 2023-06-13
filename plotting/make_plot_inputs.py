@@ -93,22 +93,6 @@ def make_plotting_input(args):
         print(f'Saving to {out_subdir / out_fname}...')
         with open(out_subdir / out_fname, 'wb') as output:
             pickle.dump((scatter_xvals, scatter_yvals, density_tau_hat, mdl_names), output)
-            
-        # y_0_all, y_1_all = [y[0] for y in y_all], [y[1] for y in y_all]
-        # z_all = np.array([rand_mdl(y_0)[0][1] for y_0 in y_0_all])
-        # y_obs = np.array([outcome_mdl(z, y_0, y_1) for (z, y_0, y_1) in zip(z_all, y_0_all, y_1_all)])
-
-        # scatter_xvals = [xaxis_fn(z, y_0, A) for (z, y_0) in zip(z_all, y_0_all)]
-        # scatter_yvals = [yaxis_fn(z, y_0, A) for (z, y_0) in zip(z_all, y_0_all)]
-        # density_tau_hat = [estimator(z, y).item() for (z, y) in zip(z_all, y_obs)]
-
-        # if not out_subdir.exists():
-        #     out_subdir.mkdir(parents=True)
-        # print(f'Saving to {out_subdir / out_fname}...')
-        # with open(out_subdir / out_fname, 'wb') as output:
-        #     pickle.dump((scatter_xvals, scatter_yvals, density_tau_hat, mdl_names), output)
-
-
 
 
 if __name__ == "__main__":
