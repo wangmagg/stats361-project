@@ -1,5 +1,5 @@
 # Restricted Randomization for Network Interferference and Network-correlated Outcomes
-Code for running simulations in STATS361 SP2023 final project.
+Code for STATS361 SP2023 final project simulations.
 
 ## Setup
 __Installation__ <br />
