@@ -44,6 +44,12 @@ def get_fitness_fn(args, fitness_fn_name, expo_mdl):
         fitness_fn = SquareSmd()
     elif fitness_fn_name == 'frac-expo':
         fitness_fn = FracExposed(expo_mdl)
+    elif fitness_fn_name == 'bias-term':
+        fitness_fn = BiasTerm(expo_mdl)
+    elif fitness_fn_name == 'variance-term':
+        fitness_fn = VarianceTerm(args.sigma, args.gamma)
+    elif fitness_fn_name == 'mse':
+        fitness_fn = ConditionalMSE(expo_mdl, args.sigma, args.gamma, args.bias_weight, args.var_weight)
     else:
         raise ValueError(f'Unrecognized fitness function: {fitness_fn_name}')
     return fitness_fn
@@ -82,8 +88,10 @@ def _get_rand_model(args, rand_mdl_name, A, dists, expo_mdl):
             rand_mdl = RestrictedRandomizationGenetic(args.n, args.n_z, args.n_cutoff, fitness_fn, A, 
                                                       args.tourn_size, args.cross_k, args.cross_rate, 
                                                       args.mut_rate, args.genetic_iters, args.seed)
-        else:
+        elif args.rand_mdl_name == 'restricted':
             rand_mdl = RestrictedRandomization(args.n, args.n_z, args.n_cutoff, fitness_fn, A, args.seed)
+        elif args.rand_mdl_name == 'graph-restricted':
+            rand_mdl = GraphRestrictedRandomization(args.n, args.n_z, args.n_cutoff, dists, A, fitness_fn, args.seed)
     elif rand_mdl_name == 'graph':
         rand_mdl = GraphRandomization(args.n, args.n_z, args.n_cutoff, dists, A, args.seed)
 

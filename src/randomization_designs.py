@@ -148,4 +148,21 @@ class GraphRandomization(CompleteRandomization):
         z_pool = [self.sample_z(V, C) for _ in range(self.n_z)] # treatment assignments
         
         return np.array(z_pool)
+
+class GraphRestrictedRandomization(GraphRandomization):
+    def __init__(self, n, n_z, n_cutoff, dists, A, fitness_fn, seed=42):
+        super().__init__(n, n_z, n_cutoff, dists, A, seed)
+        self.name = f'graph-restricted_{fitness_fn.name}'
+        self.fitness_fn = fitness_fn
+
+    def sample_accepted_idxs(self, z_pool, X):
+        scores = self.fitness_fn(z_pool, X, self.A)
+        return np.argsort(scores)[:self.n_cutoff]    
     
+    def __call__(self, X):
+        z_pool = self.sample_mult_z()
+        accepted_idxs = self.sample_accepted_idxs(z_pool, X)
+        z_accepted = z_pool[accepted_idxs, :]
+        chosen_idx = self.sample_chosen_idx()
+
+        return z_accepted, chosen_idx

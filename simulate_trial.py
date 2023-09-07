@@ -51,6 +51,8 @@ def config():
     rand_args.add_argument('--fitness-fn-name', type=str, default='square-smd_frac-expo')
     rand_args.add_argument('--smd-weight', type=float, default=1)
     rand_args.add_argument('--expo-weight', type=float, default=1)
+    rand_args.add_argument('--sigma', type=float, default=2)
+    rand_args.add_argument('--gamma', type=float, default=1)
 
     genetic_args = parser.add_argument_group('genetic')
     genetic_args.add_argument('--tourn-size', type=int, default=2)
@@ -67,7 +69,7 @@ def config():
     return args
 
 # perform trial with single data sample
-def perform_trial(data, expo_mdl, rand_mdl, outcome_mdl, estimator):
+def perform_trial(data, expo_mdl, rand_mdl, outcome_mdl, estimator, tau):
     y, assignment = data
     y_0, y_1 = y
     z_accepted, chosen_idx = assignment 
@@ -81,6 +83,7 @@ def perform_trial(data, expo_mdl, rand_mdl, outcome_mdl, estimator):
                  'outcome_mdl': outcome_mdl.name,
                  'estimator': estimator.name,
                  'tau_hat': tau_hat,
+                 'tau': tau*np.std(y_0),
                  'pval': pval}
     
     return trial_res
@@ -88,7 +91,7 @@ def perform_trial(data, expo_mdl, rand_mdl, outcome_mdl, estimator):
 def save_trial_res(args, repeated_trial_res, out_dir, out_fname):
     # calculate bias, mse, and rejection rate 
     repeated_trial_res_df = pd.DataFrame.from_records(repeated_trial_res)
-    repeated_trial_res_df['tau_diff'] = repeated_trial_res_df['tau_hat'] - args.tau
+    repeated_trial_res_df['tau_diff'] = repeated_trial_res_df['tau_hat'] - repeated_trial_res_df['tau']
     repeated_trial_res_df = repeated_trial_res_df.groupby(['rand_mdl', 'expo_mdl', 'outcome_mdl', 'estimator']).agg(
         bias = pd.NamedAgg(column="tau_diff", aggfunc=lambda x: np.mean(x)),
         mse = pd.NamedAgg(column="tau_diff", aggfunc=lambda x: np.mean(x**2)),
@@ -111,7 +114,11 @@ if __name__ == "__main__":
     expo_mdls, rand_mdls, outcome_mdls, estimators = get_models(args, A, dists)
 
     out_dir = Path(args.out_dir) / args.net_mdl_saved / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
-    out_fname = f'{args.rand_mdl_name}.pkl'
+
+    if 'restricted' in args.rand_mdl_name:
+        out_fname = f'{args.rand_mdl_name}_{args.fitness_fn_name}.pkl'
+    else:
+        out_fname = f'{args.rand_mdl_name}.pkl'
 
     if (out_dir / out_fname).exists():
         print(f'{out_dir / out_fname} already exists! Skipping...')
@@ -131,6 +138,6 @@ if __name__ == "__main__":
                         if hasattr(outcome_mdl, 'expo_mdl') and outcome_mdl.expo_mdl.name != expo_mdl.name:
                             continue
                         for estimator in estimators:
-                            trial_res = perform_trial(((y_0, y_1), assignment), expo_mdl, rand_mdl, outcome_mdl, estimator)
+                            trial_res = perform_trial(((y_0, y_1), assignment), expo_mdl, rand_mdl, outcome_mdl, estimator, args.tau)
                             all_trial_res.append(trial_res)
         save_trial_res(args, all_trial_res, out_dir, out_fname)

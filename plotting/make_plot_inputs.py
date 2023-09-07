@@ -34,6 +34,10 @@ def config():
     rand_args.add_argument('--fitness-fn-name', type=str, default='square-smd_frac-expo')
     rand_args.add_argument('--smd-weight', type=float, default=1)
     rand_args.add_argument('--expo-weight', type=float, default=1)
+    rand_args.add_argument('--sigma', type=float, default=2)
+    rand_args.add_argument('--gamma', type=float, default=1)
+    rand_args.add_argument('--bias-weight', type=float, default=2)
+    rand_args.add_argument('--var-weight', type=float, default=1)
 
     genetic_args = parser.add_argument_group('genetic')
     genetic_args.add_argument('--tourn-size', type=int, default=2)
@@ -69,18 +73,23 @@ def make_plotting_input(args):
     rand_mdl = get_rand_model(args, args.rand_mdl_name, A, dists, expo_mdl)
     outcome_mdl = get_outcome_model(args, args.outcome_mdl_name, expo_mdl, A)
     estimator = get_estimator(args, args.est_name)
-
     xaxis_fn, yaxis_fn = get_axis_fns(args, expo_mdl)
 
-    out_subdir = Path(args.out_dir) / 'plotting_input' / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
-    out_fname = f'rand-{args.rand_mdl_name}_expo-{expo_mdl.name}_xaxis-{args.xaxis_fn_name}_yaxis-{args.xaxis_fn_name}.pkl'
+    # if 'restricted' in args.rand_mdl_name:
+    #     rand_mdl_name_full = f'{args.rand_mdl_name}_{args.fitness_fn_name}'
+    # else:
+    #     rand_mdl_name_full = args.rand_mdl_name
     mdl_names = {'rand_mdl':rand_mdl.name, 'expo_mdl': expo_mdl.name}
+
+    out_subdir = Path(args.out_dir) / 'plotting_input' / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
+    out_fname = f'rand-{rand_mdl.name}_expo-{expo_mdl.name}_xaxis-{args.xaxis_fn_name}_yaxis-{args.yaxis_fn_name}.pkl'
 
     if (out_subdir / out_fname).exists():
         print(f'{out_subdir / out_fname} already exists! Skipping...')
         return
     else:
         y_0, y_1 = y_all[args.plt_iter]
+        tau = np.std(y_0) * args.tau
         z_accepted, _ = rand_mdl(y_0)
         y_obs = [outcome_mdl(z, y_0, y_1) for z in z_accepted]
 
@@ -92,7 +101,7 @@ def make_plotting_input(args):
             out_subdir.mkdir(parents=True)
         print(f'Saving to {out_subdir / out_fname}...')
         with open(out_subdir / out_fname, 'wb') as output:
-            pickle.dump((scatter_xvals, scatter_yvals, density_tau_hat, mdl_names), output)
+            pickle.dump((scatter_xvals, scatter_yvals, density_tau_hat, mdl_names, tau), output)
 
 
 if __name__ == "__main__":
