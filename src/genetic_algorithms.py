@@ -34,7 +34,7 @@ def run_genetic_alg(z_pool, fitness_fn, X, A, tourn_size, cross_k, cross_rate, m
     init_pool_size = z_pool.shape[0]
 
     for _ in range(genetic_iters):
-        scores = fitness_fn(z_pool, X, A)
+        scores = fitness_fn(z_pool, X, A) + 2 * np.abs(0.5 - np.mean(z_pool, axis=1))
 
         # use tournament selection to make mating pool
         winners = np.array([tournament(scores, tourn_size, rng) for _ in range(len(scores))])
@@ -63,8 +63,13 @@ def run_genetic_alg(z_pool, fitness_fn, X, A, tourn_size, cross_k, cross_rate, m
 
         # combine parent and child generations
         z_pool_new = np.vstack((z_pool, z_pool_chil_mut))
-        new_scores = fitness_fn(z_pool_new, X, A)
+        new_scores = fitness_fn(z_pool_new, X, A) + 2 * np.abs(0.5 - np.mean(z_pool_new, axis=1))
         keep = np.argsort(new_scores)[:init_pool_size]
         z_pool = z_pool_new[keep, :]
+
+        # remove allocations that are all treatment or all control
+        # all_0_mask = np.sum(z_pool, axis=1) == 0
+        # all_1_mask = np.sum(z_pool, axis=1) == z_pool.shape[1]
+        # z_pool = z_pool[~all_0_mask & ~all_1_mask, :]
     
     return z_pool, new_scores[keep]

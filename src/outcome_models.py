@@ -5,7 +5,7 @@ def sample_po(n, mu, sigma, gamma, tau, A, rng):
 
     mu_y = np.matmul(A, X)
     y_0 = rng.normal(mu_y, gamma)
-    y_1 = y_0 + tau
+    y_1 = y_0 + tau * np.std(y_0)
 
     return y_0, y_1
 
@@ -16,6 +16,6 @@ class AdditiveInterference():
         self.expo_mdl = expo_mdl
         self.A = A
     def __call__(self, z, y_0, y_1):
-        return z*y_1 + (1-z)*y_0 + (1-z)*self.delta*self.expo_mdl(z, self.A)
+        return z*y_1 + (1-z)*y_0 + (1-z)*self.delta*np.std(y_0)*self.expo_mdl(z, self.A)
 
     
