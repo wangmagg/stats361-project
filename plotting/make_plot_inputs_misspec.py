@@ -9,6 +9,7 @@ from src.estimators import *
 from src.genetic_algorithms import *
 
 from utils.load_from_args import *
+from utils.load_from_args import _get_fitness_fn
 
 def config():
     parser = ArgumentParser()
@@ -34,6 +35,10 @@ def config():
     rand_args.add_argument('--fitness-fn-name', type=str, default='square-smd_frac-expo')
     rand_args.add_argument('--smd-weight', type=float, default=1)
     rand_args.add_argument('--expo-weight', type=float, default=1)
+    rand_args.add_argument('--sigma', type=float, default=2)
+    rand_args.add_argument('--gamma', type=float, default=1)
+    rand_args.add_argument('--bias-weight', type=float, default=2)
+    rand_args.add_argument('--var-weight', type=float, default=1)
 
     genetic_args = parser.add_argument_group('genetic')
     genetic_args.add_argument('--tourn-size', type=int, default=2)
@@ -53,67 +58,62 @@ def config():
     plt_args.add_argument('--xaxis_fn_name', type=str, default='smd')
     plt_args.add_argument('--yaxis_fn_name', type=str, default='frac-expo')
 
+    misspec_args = parser.add_argument_group('misspec')
+    misspec_args.add_argument('--misspec-type', type=str, default='add', choices=['add', 'remove', 'add-remove'])
+    misspec_args.add_argument('--p-remove', type=float, nargs='+', default=[0.05, 0.1, 0.5])
+    misspec_args.add_argument('--p-add', type=float, nargs='+', default=[0.05, 0.1, 0.5])
+
     args = parser.parse_args()
 
     return args
 
 def get_axis_fns(args, expo_mdl):
-    xaxis_fn = get_fitness_fn(args, args.xaxis_fn_name, expo_mdl)
-    yaxis_fn = get_fitness_fn(args, args.yaxis_fn_name, expo_mdl)
+    xaxis_fn = _get_fitness_fn(args.xaxis_fn_name, args, expo_mdl)
+    yaxis_fn = _get_fitness_fn(args.yaxis_fn_name, args, expo_mdl)
 
     return xaxis_fn, yaxis_fn
 
-def make_plotting_input(args):
-    y_all, A, dists = get_data(args)
-    expo_mdl = get_expo_model(args, args.expo_mdl_name)
-    rand_mdl = get_rand_model(args, args.rand_mdl_name, A, dists, expo_mdl)
-    outcome_mdl = get_outcome_model(args, args.outcome_mdl_name, expo_mdl, A)
-    estimator = get_estimator(args, args.est_name)
+def make_plotting_input_misspec(args):
+    y_all, A, _ = get_data(args)
+    A_misspec, dists_misspec = get_misspec(args, A)
+    misspec_name = get_misspec_name(args)
 
-    xaxis_fn, yaxis_fn = get_axis_fns(args, expo_mdl)
+    for A_m, d_m, name in zip(A_misspec, dists_misspec, misspec_name):
+        expo_mdl = get_expo_model(args)
+        rand_mdl = get_rand_model(args, A_m, d_m, expo_mdl)
+        outcome_mdl = get_outcome_model(args, expo_mdl, A)
+        estimator = get_estimator(args)
 
-    out_subdir = Path(args.out_dir) / 'plotting_input' / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
-    out_fname = f'rand-{args.rand_mdl_name}_expo-{expo_mdl.name}_xaxis-{args.xaxis_fn_name}_yaxis-{args.xaxis_fn_name}.pkl'
-    mdl_names = {'rand_mdl':rand_mdl.name, 'expo_mdl': expo_mdl.name}
+        xaxis_fn, yaxis_fn = get_axis_fns(args, expo_mdl)
+        
+        mdl_names = {'rand_mdl':rand_mdl.name, 'expo_mdl': expo_mdl.name}
+        out_subdir = Path(args.out_dir) / 'plotting_input_misspec' / name / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
+        out_fname = f'rand-{rand_mdl.name}_expo-{expo_mdl.name}_xaxis-{args.xaxis_fn_name}_yaxis-{args.yaxis_fn_name}.pkl'
 
-    if (out_subdir / out_fname).exists():
-        print(f'{out_subdir / out_fname} already exists! Skipping...')
-        return
-    else:
-        y_0, y_1 = y_all[args.plt_iter]
-        z_accepted, _ = rand_mdl(y_0)
-        y_obs = [outcome_mdl(z, y_0, y_1) for z in z_accepted]
+        if (out_subdir / out_fname).exists():
+            print(f'{out_subdir / out_fname} already exists! Skipping...')
+            continue
+        else:
+            y_0, y_1 = y_all[args.plt_iter]
+            tau = np.std(y_0) * args.tau
+            z_accepted, _ = rand_mdl(y_0)
+            y_obs = [outcome_mdl(z, y_0, y_1) for z in z_accepted]
 
-        scatter_xvals = xaxis_fn(z_accepted, y_0, A)
-        scatter_yvals = yaxis_fn(z_accepted, y_0, A)
-        density_tau_hat = [estimator(z, y).item() for (z, y) in zip(z_accepted, y_obs)]
+            scatter_xvals = xaxis_fn(z_accepted, y_0, A)
+            scatter_yvals = yaxis_fn(z_accepted, y_0, A)
+            density_tau_hat = [estimator(z, y).item() for (z, y) in zip(z_accepted, y_obs)]
 
-        if not out_subdir.exists():
-            out_subdir.mkdir(parents=True)
-        print(f'Saving to {out_subdir / out_fname}...')
-        with open(out_subdir / out_fname, 'wb') as output:
-            pickle.dump((scatter_xvals, scatter_yvals, density_tau_hat, mdl_names), output)
-            
-        # y_0_all, y_1_all = [y[0] for y in y_all], [y[1] for y in y_all]
-        # z_all = np.array([rand_mdl(y_0)[0][1] for y_0 in y_0_all])
-        # y_obs = np.array([outcome_mdl(z, y_0, y_1) for (z, y_0, y_1) in zip(z_all, y_0_all, y_1_all)])
-
-        # scatter_xvals = [xaxis_fn(z, y_0, A) for (z, y_0) in zip(z_all, y_0_all)]
-        # scatter_yvals = [yaxis_fn(z, y_0, A) for (z, y_0) in zip(z_all, y_0_all)]
-        # density_tau_hat = [estimator(z, y).item() for (z, y) in zip(z_all, y_obs)]
-
-        # if not out_subdir.exists():
-        #     out_subdir.mkdir(parents=True)
-        # print(f'Saving to {out_subdir / out_fname}...')
-        # with open(out_subdir / out_fname, 'wb') as output:
-        #     pickle.dump((scatter_xvals, scatter_yvals, density_tau_hat, mdl_names), output)
-
+            if not out_subdir.exists():
+                out_subdir.mkdir(parents=True)
+            print(f'Saving to {out_subdir / out_fname}...')
+            with open(out_subdir / out_fname, 'wb') as output:
+                pickle.dump((scatter_xvals, scatter_yvals, density_tau_hat, mdl_names, tau), output)
 
 
 
 if __name__ == "__main__":
     args = config()
-    make_plotting_input(args)
+    make_plotting_input_misspec(args)
 
     
   

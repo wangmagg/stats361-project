@@ -87,6 +87,7 @@ class RestrictedRandomizationGenetic(CompleteRandomization):
 class GraphRandomization(CompleteRandomization):
     def __init__(self, n, n_z, n_cutoff, dists, A, seed=42):
         super().__init__(n, n_z, n_cutoff)
+        self.n_clusters = n
         self.name = 'graph'
         self.dists = dists
         self.A = A
@@ -146,7 +147,10 @@ class GraphRandomization(CompleteRandomization):
             self.cached_B = True
         V, C = self.three_net(self.B)
         z_pool = [self.sample_z(V, C) for _ in range(self.n_z)] # treatment assignments
-        
+        self.n_clusters = len(V)
+        _, cnts = np.unique(C, return_counts=True)
+        self.size_per_cluster = cnts
+
         return np.array(z_pool)
 
 class GraphRestrictedRandomization(GraphRandomization):
@@ -161,6 +165,36 @@ class GraphRestrictedRandomization(GraphRandomization):
     
     def __call__(self, X):
         z_pool = self.sample_mult_z()
+        accepted_idxs = self.sample_accepted_idxs(z_pool, X)
+        z_accepted = z_pool[accepted_idxs, :]
+        chosen_idx = self.sample_chosen_idx()
+
+        return z_accepted, chosen_idx
+    
+class GraphRestrictedRandomizationGenetic(GraphRandomization):
+    def __init__(self, n, n_z, n_cutoff, dists, A, fitness_fn, 
+                 tourn_size, cross_k, cross_rate, mut_rate, genetic_iters,
+                 seed=42):
+        super().__init__(n, n_z, n_cutoff, dists, A, seed)
+        self.name = f'graph-restricted-genetic_{fitness_fn.name}'
+        self.fitness_fn = fitness_fn
+        self.A = A
+        self.rng = np.random.default_rng(seed)
+        self.tourn_size = tourn_size
+        self.cross_k = cross_k
+        self.cross_rate = cross_rate
+        self.mut_rate = mut_rate
+        self.genetic_iters = genetic_iters
+
+    def sample_accepted_idxs(self, z_pool, X):
+        scores = self.fitness_fn(z_pool, X, self.A)
+        return np.argsort(scores)[:self.n_cutoff]    
+    
+    def __call__(self, X):
+        z_pool = self.sample_mult_z()
+        z_pool, _ = run_genetic_alg(z_pool, self.fitness_fn, X, self.A, 
+                                    self.tourn_size, self.cross_k, self.cross_rate, 
+                                    self.mut_rate, self.genetic_iters, self.rng)
         accepted_idxs = self.sample_accepted_idxs(z_pool, X)
         z_accepted = z_pool[accepted_idxs, :]
         chosen_idx = self.sample_chosen_idx()

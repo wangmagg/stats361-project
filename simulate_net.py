@@ -2,6 +2,7 @@ import numpy as np
 from pathlib import Path
 import pickle
 from argparse import ArgumentParser
+import networkx as nx
 
 from src.outcome_models import *
 from src.network_models import *

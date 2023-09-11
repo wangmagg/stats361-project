@@ -9,6 +9,7 @@ from src.estimators import *
 from src.genetic_algorithms import *
 
 from utils.load_from_args import *
+from utils.load_from_args import _get_fitness_fn
 
 def config():
     parser = ArgumentParser()
@@ -62,25 +63,17 @@ def config():
     return args
 
 def get_axis_fns(args, expo_mdl):
-    xaxis_fn = get_fitness_fn(args, args.xaxis_fn_name, expo_mdl)
-    yaxis_fn = get_fitness_fn(args, args.yaxis_fn_name, expo_mdl)
+    xaxis_fn = _get_fitness_fn(args.xaxis_fn_name, args, expo_mdl)
+    yaxis_fn = _get_fitness_fn(args.yaxis_fn_name, args, expo_mdl)
 
     return xaxis_fn, yaxis_fn
 
 def make_plotting_input(args):
     y_all, A, dists = get_data(args)
-    expo_mdl = get_expo_model(args, args.expo_mdl_name)
-    rand_mdl = get_rand_model(args, args.rand_mdl_name, A, dists, expo_mdl)
-    outcome_mdl = get_outcome_model(args, args.outcome_mdl_name, expo_mdl, A)
-    estimator = get_estimator(args, args.est_name)
+    expo_mdl, rand_mdl, outcome_mdl, estimator = get_models(args, A, dists)
     xaxis_fn, yaxis_fn = get_axis_fns(args, expo_mdl)
-
-    # if 'restricted' in args.rand_mdl_name:
-    #     rand_mdl_name_full = f'{args.rand_mdl_name}_{args.fitness_fn_name}'
-    # else:
-    #     rand_mdl_name_full = args.rand_mdl_name
+    
     mdl_names = {'rand_mdl':rand_mdl.name, 'expo_mdl': expo_mdl.name}
-
     out_subdir = Path(args.out_dir) / 'plotting_input' / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
     out_fname = f'rand-{rand_mdl.name}_expo-{expo_mdl.name}_xaxis-{args.xaxis_fn_name}_yaxis-{args.yaxis_fn_name}.pkl'
 
@@ -102,6 +95,7 @@ def make_plotting_input(args):
         print(f'Saving to {out_subdir / out_fname}...')
         with open(out_subdir / out_fname, 'wb') as output:
             pickle.dump((scatter_xvals, scatter_yvals, density_tau_hat, mdl_names, tau), output)
+
 
 
 if __name__ == "__main__":

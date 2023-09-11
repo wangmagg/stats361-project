@@ -37,7 +37,7 @@ def config():
     data_args.add_argument('--out-dir', type=str, default='output')
     
     expo_args = parser.add_argument_group('expo_mdl')
-    expo_args.add_argument('--expo-mdl-name', type=str, nargs='+', default='frac-nbr-expo-0.5')
+    expo_args.add_argument('--expo-mdl-name', type=str, default='frac-nbr-expo')
     expo_args.add_argument('--q', type=float, nargs='+', default=0.5)
     
     outcome_args = parser.add_argument_group('outcome_mdl')
@@ -62,7 +62,7 @@ def config():
     genetic_args.add_argument('--genetic-iters', type=int, default=3)
     
     estimator_args = parser.add_argument_group('estimator')
-    estimator_args.add_argument('--est-name', type=str, nargs='+', default='diff-in-means')
+    estimator_args.add_argument('--est-name', type=str, default='diff-in-means')
 
     args = parser.parse_args()
 
@@ -111,33 +111,37 @@ def save_trial_res(args, repeated_trial_res, out_dir, out_fname):
 if __name__ == "__main__":
     args = config()    
     y_all, A, dists = get_data(args)
-    expo_mdls, rand_mdls, outcome_mdls, estimators = get_models(args, A, dists)
+    expo_mdl, rand_mdl, outcome_mdl, estimator = get_models(args, A, dists)
 
     out_dir = Path(args.out_dir) / args.net_mdl_saved / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
-
-    if 'restricted' in args.rand_mdl_name:
-        out_fname = f'{args.rand_mdl_name}_{args.fitness_fn_name}.pkl'
-    else:
-        out_fname = f'{args.rand_mdl_name}.pkl'
+    out_fname = f'{args.rand_mdl_name}.pkl'
 
     if (out_dir / out_fname).exists():
         print(f'{out_dir / out_fname} already exists! Skipping...')
-
     else:
         print(f'Running simulations for: {out_dir / out_fname}')
         all_trial_res = []
         for (y_0, y_1) in tqdm(y_all):
-            for i, rand_mdl in enumerate(rand_mdls):
-                if i == 0 or rand_mdl.name != prev_rand_mdl.name:
-                    assignment = rand_mdl(y_0)
-                    prev_rand_mdl = rand_mdl
-                for expo_mdl in expo_mdls:
-                    if hasattr(rand_mdl, 'expo_mdl') and rand_mdl.expo_mdl.name != expo_mdl.name:
-                        continue
-                    for outcome_mdl in outcome_mdls:
-                        if hasattr(outcome_mdl, 'expo_mdl') and outcome_mdl.expo_mdl.name != expo_mdl.name:
-                            continue
-                        for estimator in estimators:
-                            trial_res = perform_trial(((y_0, y_1), assignment), expo_mdl, rand_mdl, outcome_mdl, estimator, args.tau)
+                
+                if isinstance(expo_mdl, list) and isinstance(outcome_mdl, list):
+                    for r, e in zip(rand_mdl, expo_mdl):
+                        assignment = r(y_0)
+                        for o in outcome_mdl:
+                            trial_res = perform_trial(((y_0, y_1), assignment), e, r, o, estimator, args.tau)
                             all_trial_res.append(trial_res)
+                elif isinstance(expo_mdl, list):
+                    for r, e in zip(rand_mdl, expo_mdl):
+                        assignment = r(y_0)
+                        trial_res = perform_trial(((y_0, y_1), assignment), e, r, outcome_mdl, estimator, args.tau)
+                        all_trial_res.append(trial_res)
+                elif isinstance(outcome_mdl, list):
+                    for o in outcome_mdl:
+                        assignment = rand_mdl(y_0)
+                        trial_res = perform_trial(((y_0, y_1), assignment), expo_mdl, rand_mdl, o, estimator, args.tau)
+                        all_trial_res.append(trial_res)
+                else:
+                    assignment = rand_mdl(y_0)
+                    trial_res = perform_trial(((y_0, y_1), assignment), expo_mdl, rand_mdl, outcome_mdl, estimator, args.tau)
+                    all_trial_res.append(trial_res)
+
         save_trial_res(args, all_trial_res, out_dir, out_fname)

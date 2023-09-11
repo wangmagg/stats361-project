@@ -29,6 +29,14 @@ do
             --fitness-fn-name 'square-smd_frac-expo' --smd-weight 1.0 --expo-weight 1.0 \
             --outcome-mdl-name 'additive' --delta-size 1.0 \
             --est-name 'diff-in-means'
+        
+        python3 -m plotting.make_plot_inputs --data-dir 'data' --net-mdl-saved $net_mdl \
+            --n $n --tau $tau --n-iters $n_iters \
+            --expo-mdl-name 'one-nbr-expo' \
+            --rand-mdl-name 'graph-restricted-genetic' --n-z 10000 --n-cutoff 1000 \
+            --fitness-fn-name 'square-smd_frac-expo' --smd-weight 1.0 --expo-weight 1.0 \
+            --outcome-mdl-name 'additive' --delta-size 1.0 \
+            --est-name 'diff-in-means'
 
         python3 -m plotting.make_plot_inputs --data-dir 'data' --net-mdl-saved $net_mdl \
             --n $n --tau $tau --n-iters $n_iters \
@@ -56,6 +64,14 @@ do
             --fitness-fn-name 'square-smd_frac-expo' --smd-weight 1.0 --expo-weight 2.0 \
             --outcome-mdl-name 'additive' --delta-size 1.0 \
             --est-name 'diff-in-means'
+
+        python3 -m plotting.make_plot_inputs --data-dir 'data' --net-mdl-saved $net_mdl \
+            --n $n --tau $tau --n-iters $n_iters \
+            --expo-mdl-name 'one-nbr-expo' \
+            --rand-mdl-name 'graph-restricted-genetic' --n-z 10000 --n-cutoff 1000 \
+            --fitness-fn-name 'square-smd_frac-expo' --smd-weight 1.0 --expo-weight 2.0 \
+            --outcome-mdl-name 'additive' --delta-size 1.0 \
+            --est-name 'diff-in-means'    
 
         python3 -m plotting.make_plot_inputs --data-dir 'data' --net-mdl-saved $net_mdl \
             --n $n --tau $tau --n-iters $n_iters \
@@ -111,9 +127,9 @@ do
             --est-name 'diff-in-means'
 
         python3 -m plotting.make_plots --n $n --n-iters $n_iters --net-mdl-saved $net_mdl --expo-mdl-name "one-nbr-expo" \
-            --fitness-fn-name 'mse_sigma-2.00_gamma-1.00' --tau $tau
+            --fitness-fn-name 'mse_sigma-2.00_gamma-1.00_bias-2.00_var-1.00' --tau $tau
 
-        for q in 0.25 0.50 0.75 # 1.00 
+        for q in 0.25 0.50 0.75 
         do
             python3 -m plotting.make_plot_inputs --data-dir 'data' --net-mdl-saved $net_mdl \
                 --n $n --tau $tau --n-iters $n_iters \
@@ -133,6 +149,14 @@ do
                 --n $n --tau $tau --n-iters $n_iters \
                 --expo-mdl-name 'frac-nbr-expo' --q $q \
                 --rand-mdl-name 'graph-restricted' --n-z 10000 --n-cutoff 1000 \
+                --fitness-fn-name 'square-smd_frac-expo' --smd-weight 1.0 --expo-weight 1.0 \
+                --outcome-mdl-name 'additive' --delta-size 1.0 \
+                --est-name 'diff-in-means'
+
+            python3 -m plotting.make_plot_inputs --data-dir 'data' --net-mdl-saved $net_mdl \
+                --n $n --tau $tau --n-iters $n_iters \
+                --expo-mdl-name 'frac-nbr-expo' --q $q \
+                --rand-mdl-name 'graph-restricted-genetic' --n-z 10000 --n-cutoff 1000 \
                 --fitness-fn-name 'square-smd_frac-expo' --smd-weight 1.0 --expo-weight 1.0 \
                 --outcome-mdl-name 'additive' --delta-size 1.0 \
                 --est-name 'diff-in-means'
@@ -161,6 +185,14 @@ do
                 --n $n --tau $tau --n-iters $n_iters \
                 --expo-mdl-name 'frac-nbr-expo' --q $q \
                 --rand-mdl-name 'graph-restricted' --n-z 10000 --n-cutoff 1000 \
+                --fitness-fn-name 'square-smd_frac-expo' --smd-weight 1.0 --expo-weight 2.0 \
+                --outcome-mdl-name 'additive' --delta-size 1.0 \
+                --est-name 'diff-in-means'
+
+            python3 -m plotting.make_plot_inputs --data-dir 'data' --net-mdl-saved $net_mdl \
+                --n $n --tau $tau --n-iters $n_iters \
+                --expo-mdl-name 'frac-nbr-expo' --q $q \
+                --rand-mdl-name 'graph-restricted-genetic' --n-z 10000 --n-cutoff 1000 \
                 --fitness-fn-name 'square-smd_frac-expo' --smd-weight 1.0 --expo-weight 2.0 \
                 --outcome-mdl-name 'additive' --delta-size 1.0 \
                 --est-name 'diff-in-means'
@@ -220,7 +252,7 @@ do
                 --est-name 'diff-in-means'
 
             python3 -m plotting.make_plots --n $n --n-iters $n_iters --net-mdl-saved $net_mdl --expo-mdl-name "frac-nbr-expo-${q}" \
-                --fitness-fn-name 'mse_sigma-2.00_gamma-1.00' --tau $tau
+                --fitness-fn-name 'mse_sigma-2.00_gamma-1.00_bias-2.00_var-1.00' --tau $tau
         done
     done
 done

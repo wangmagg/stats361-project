@@ -25,7 +25,7 @@ def config():
 
     parser.add_argument('--expo-mdl-name', type=str, default='frac-nbr-expo-0.50')
     parser.add_argument('--rand-mdl-name', type=str, nargs='+',
-                           default=['complete', 'restricted', 'restricted-genetic', 'graph', 'graph-restricted'])
+                           default=['complete', 'restricted', 'restricted-genetic', 'graph', 'graph-restricted', 'graph-restricted-genetic'])
     parser.add_argument('--fitness-fn-name', type=str, default='square-smd_frac-expo')
  
     parser.add_argument('--xaxis_fn_name', type=str, default='smd')
@@ -72,9 +72,9 @@ def scatterplt_alloc(args):
         ax[1][0].scatter(xvals, tau_hats, label=rand_mdl_name, s=2, alpha=0.5)
         ax[1][1].scatter(yvals, tau_hats, label=rand_mdl_name, s=2, alpha=0.5)
 
-    ax[0][1].axvline(x=tau, linestyle='--', color='black', label=r'$\tau$', linewidth=1)
-    ax[1][0].axhline(y=tau, linestyle='--', color='black', label=r'$\tau$', linewidth=1)
-    ax[1][1].axhline(y=tau, linestyle='--', color='black', label=r'$\tau$', linewidth=1)
+    ax[0][1].axvline(x=tau, linestyle='--', color='black', label=r'$\tau$ true', linewidth=1)
+    ax[1][0].axhline(y=tau, linestyle='--', color='black', label=r'$\tau$ true', linewidth=1)
+    ax[1][1].axhline(y=tau, linestyle='--', color='black', label=r'$\tau$ true', linewidth=1)
 
     ax[0][0].set_xlabel(args.xaxis_title, fontsize=14)
     ax[0][0].set_ylabel(args.yaxis_title, fontsize=14)

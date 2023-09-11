@@ -37,11 +37,19 @@ class SquareSmd:
             
         # calculate group means and return difference
         if z_pool.ndim == 2:
-            mean_1 = np.matmul(z_pool, X_norm) / np.sum(z_pool, axis=1)
-            mean_0 = np.matmul(1 - z_pool, X_norm) / np.sum(1 - z_pool, axis=1)
+            n_1 = np.sum(z_pool, axis=1)
+            n_0 = np.sum(1 - z_pool, axis=1)
+            mean_1 = np.divide(np.matmul(z_pool, X_norm), n_1, where = n_1 != 0)
+            mean_0 = np.divide(np.matmul(1 - z_pool, X_norm), n_0, where = n_0 != 0)
         else:
-            mean_1 = np.matmul(z_pool, X_norm) / np.sum(z_pool)
-            mean_0 = np.matmul(1 - z_pool, X_norm) / np.sum(1 - z_pool)
+            if np.sum(z_pool) == 0:
+                mean_1 = 0
+            else:
+                mean_1 = np.matmul(z_pool, X_norm) / np.sum(z_pool)
+            if np.sum(1 - z_pool) == 0:
+                mean_0 = 0
+            else:
+                mean_0 = np.matmul(1 - z_pool, X_norm) / np.sum(1 - z_pool)
 
         return np.square(mean_1 - mean_0)
 
@@ -53,9 +61,13 @@ class FracExposed:
     def __call__(self, z_pool, X, A):
         is_exposed = self.expo_mdl(z_pool, A)
         if z_pool.ndim == 2:
-            return np.sum(is_exposed * (1 - z_pool), axis=1) / np.sum(1 - z_pool, axis=1)
+            n_0 = np.sum(1 - z_pool, axis=1)
+            return np.divide(np.sum(is_exposed * (1 - z_pool), axis=1), n_0, where = n_0 != 0) 
         else:
-            return np.sum(is_exposed * (1 - z_pool)) / np.sum(1 - z_pool)
+            if np.sum(1 - z_pool) == 0:
+                return 0
+            else:
+                return np.sum(is_exposed * (1 - z_pool)) / np.sum(1 - z_pool)
             
 class SmdExpo:
     def __init__(self, expo_mdl, smd_weight, expo_weight):
@@ -120,7 +132,7 @@ class BiasTerm:
 
 class VarianceTerm:
     def __init__(self, sigma, gamma):
-        self.name = f'variance-term_sigma-{sigma}_gamma-{gamma}'
+        self.name = f'variance-term_sigma-{sigma:.2f}_gamma-{gamma:.2f}'
         self.sigma = sigma
         self.gamma = gamma
 
@@ -153,7 +165,7 @@ class VarianceTerm:
 
 class ConditionalMSE:
     def __init__(self, expo_mdl, sigma, gamma, bias_weight, var_weight):
-        self.name = f'mse_sigma-{sigma}_gamma-{gamma}_bias-{bias_weight:.2f}_var-{var_weight:.2f}'
+        self.name = f'mse_sigma-{sigma:.2f}_gamma-{gamma:.2f}_bias-{bias_weight:.2f}_var-{var_weight:.2f}'
         self.expo_mdl = expo_mdl
         self.sigma = sigma
         self.gamma = gamma

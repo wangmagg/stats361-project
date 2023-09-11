@@ -5,7 +5,9 @@ __pycache__
 lib
 *data/
 figs/
+figs_misspec/
 output/
+output_misspec/
 csvs/
 notebooks/
 plotting/*_input
