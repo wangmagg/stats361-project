@@ -8,23 +8,32 @@ from src.network_models import *
 
 def make_data(args):
     y_subdir = Path(args.data_dir) / 'outcomes' / args.net_mdl_saved
-    y_fname = f"n-{args.n}_it-{args.n_iters}_tau-{args.tau:.1f}.pkl"
+
+    if args.addhealth:
+        y_fname = f"it-{args.n_iters}_tau-{args.tau:.1f}.pkl"
+    else:
+        y_fname = f"n-{args.n}_it-{args.n_iters}_tau-{args.tau:.1f}.pkl"
 
     if (y_subdir / y_fname).exists():
         print(f"{y_subdir / y_fname} already exists! Skipping...")
         return
     else:
         print(f"Generating {y_subdir / y_fname}")
-        
         rng = np.random.default_rng(args.seed)
 
-        net_subdir = Path(args.data_dir) / 'networks' / args.net_mdl_saved
-        with open(net_subdir / f"n-{args.n}.pkl", 'rb') as input:
-            _, A, _ = pickle.load(input)
+        net_subdir = Path(args.data_dir) / 'networks' 
+ 
+        if args.addhealth:
+            with open(net_subdir / f"{args.net_mdl_saved}.pkl", 'rb') as input:
+                _, A, _ = pickle.load(input)
+        else:
+            with open(net_subdir / args.net_mdl_saved / f"n-{args.n}.pkl", 'rb') as input:
+                _, A, _ = pickle.load(input)
 
         all_y = []
         for _ in range(args.n_iters):
-            y_0, y_1 = sample_po(args.n, args.mu, args.sigma, args.gamma, args.tau, A, rng)
+            n = A.shape[0]
+            y_0, y_1 = sample_po(n, args.mu, args.sigma, args.gamma, args.tau, A, rng)
             all_y.append((y_0, y_1))
 
         if not y_subdir.exists():
@@ -44,6 +53,7 @@ if __name__ == "__main__":
     parser.add_argument('--n-iters', type=int, default=100)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--net-mdl-saved', type=str, default='ws_k-10_p-0.10')
+    parser.add_argument('--addhealth', action='store_true')
 
     args = parser.parse_args()
 

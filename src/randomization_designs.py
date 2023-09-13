@@ -127,11 +127,14 @@ class GraphRandomization(CompleteRandomization):
         # assign vertices to closest clusters
         C = np.zeros(n) # vertex assignments
         for i in range(n):
-            dists_to_v = [self.dists[i][v] for v in V if v in self.dists[i]]
-            if not dists_to_v:
+            if i not in self.dists:
                 C[i] = V[self.rng.integers(len(V))]
             else:
-                C[i] = V[np.argmin(dists_to_v)]
+                dists_to_v = [self.dists[i][v] for v in V if v in self.dists[i]]
+                if not dists_to_v:
+                    C[i] = V[self.rng.integers(len(V))]
+                else:
+                    C[i] = V[np.argmin(dists_to_v)]
         
         return V, C
 

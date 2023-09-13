@@ -23,7 +23,8 @@ def config():
     data_args.add_argument('--plt-iter', type=int, default=0)
     data_args.add_argument('--seed', default=42)
     data_args.add_argument('--out-dir', type=str, default='plotting')
-    
+    data_args.add_argument('--addhealth', action='store_true')    
+
     expo_args = parser.add_argument_group('expo_mdl')
     expo_args.add_argument('--expo-mdl-name', type=str, default='frac-nbr-expo')
     expo_args.add_argument('--q', type=float, default=0.5)
@@ -74,7 +75,11 @@ def make_plotting_input(args):
     xaxis_fn, yaxis_fn = get_axis_fns(args, expo_mdl)
     
     mdl_names = {'rand_mdl':rand_mdl.name, 'expo_mdl': expo_mdl.name}
-    out_subdir = Path(args.out_dir) / 'plotting_input' / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
+    
+    if args.addhealth:
+        out_subdir = Path(args.out_dir) / 'plotting_input' / f'{args.net_mdl_saved}' / f'it-{args.n_iters}_tau-{args.tau}'
+    else:
+        out_subdir = Path(args.out_dir) / 'plotting_input' / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
     out_fname = f'rand-{rand_mdl.name}_expo-{expo_mdl.name}_xaxis-{args.xaxis_fn_name}_yaxis-{args.yaxis_fn_name}.pkl'
 
     if (out_subdir / out_fname).exists():

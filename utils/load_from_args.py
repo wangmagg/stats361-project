@@ -26,13 +26,24 @@ def get_net(args):
     return net_mdl
 
 def get_data(args):
-    net_subdir = Path(args.data_dir) / 'networks' / args.net_mdl_saved
-    with open(net_subdir / f"n-{args.n}.pkl", 'rb') as input:
-        _, A, dists = pickle.load(input)
+    net_subdir = Path(args.data_dir) / 'networks' 
+    
+    if args.addhealth:
+        with open(net_subdir / f"{args.net_mdl_saved}.pkl", 'rb') as input:
+            _, A, dists = pickle.load(input)
+    else:    
+        with open(net_subdir / args.net_mdl_saved / f"n-{args.n}.pkl", 'rb') as input:
+            _, A, dists = pickle.load(input)
 
+    
     y_subdir = Path(args.data_dir) / 'outcomes' / args.net_mdl_saved
-    with open(y_subdir / f"n-{args.n}_it-{args.n_iters}_tau-{args.tau:.1f}.pkl", 'rb') as input:
-        y = pickle.load(input)
+    
+    if args.addhealth:
+        with open(y_subdir / f"it-{args.n_iters}_tau-{args.tau:.1f}.pkl", "rb") as input:
+            y = pickle.load(input)
+    else:
+        with open(y_subdir / f"n-{args.n}_it-{args.n_iters}_tau-{args.tau:.1f}.pkl", 'rb') as input:
+            y = pickle.load(input)
 
     return y, A, dists
 
@@ -85,24 +96,26 @@ def get_expo_model(args):
         return _get_expo_model(args.expo_mdl_name, args.q)
 
 def _get_rand_model(rand_mdl_name, args, A, dists, expo_mdl):
+    n = A.shape[0]
+
     if rand_mdl_name == 'complete':
-        rand_mdl = CompleteRandomization(args.n, args.n_z, args.n_cutoff, args.seed)
+        rand_mdl = CompleteRandomization(n, args.n_z, args.n_cutoff, args.seed)
     elif 'restricted' in rand_mdl_name:
         fitness_fn = get_fitness_fn(args, expo_mdl)
         if rand_mdl_name == 'restricted-genetic':
-            rand_mdl = RestrictedRandomizationGenetic(args.n, args.n_z, args.n_cutoff, fitness_fn, A, 
+            rand_mdl = RestrictedRandomizationGenetic(n, args.n_z, args.n_cutoff, fitness_fn, A, 
                                                       args.tourn_size, args.cross_k, args.cross_rate, 
                                                       args.mut_rate, args.genetic_iters, args.seed)
         elif rand_mdl_name == 'restricted':
-            rand_mdl = RestrictedRandomization(args.n, args.n_z, args.n_cutoff, fitness_fn, A, args.seed)
+            rand_mdl = RestrictedRandomization(n, args.n_z, args.n_cutoff, fitness_fn, A, args.seed)
         elif rand_mdl_name == 'graph-restricted':
-            rand_mdl = GraphRestrictedRandomization(args.n, args.n_z, args.n_cutoff, dists, A, fitness_fn, args.seed)
+            rand_mdl = GraphRestrictedRandomization(n, args.n_z, args.n_cutoff, dists, A, fitness_fn, args.seed)
         elif rand_mdl_name == 'graph-restricted-genetic':
-            rand_mdl = GraphRestrictedRandomizationGenetic(args.n, args.n_z, args.n_cutoff, dists, A, fitness_fn, 
+            rand_mdl = GraphRestrictedRandomizationGenetic(n, args.n_z, args.n_cutoff, dists, A, fitness_fn, 
                                                            args.tourn_size, args.cross_k, args.cross_rate, 
                                                            args.mut_rate, args.genetic_iters, args.seed)
     elif args.rand_mdl_name == 'graph':
-        rand_mdl = GraphRandomization(args.n, args.n_z, args.n_cutoff, dists, A, args.seed)
+        rand_mdl = GraphRandomization(n, args.n_z, args.n_cutoff, dists, A, args.seed)
 
     return rand_mdl
 

@@ -12,3 +12,4 @@ csvs/
 notebooks/
 plotting/*_input
 stats361-env
+addhealth/

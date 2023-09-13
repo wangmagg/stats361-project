@@ -22,6 +22,7 @@ def config():
     parser.add_argument('--tau', type=float, default=0.4)
     parser.add_argument('--n', type=int, default=500)
     parser.add_argument('--n-iters', type=int, default=1)
+    parser.add_argument('--addhealth', action='store_true')
 
     parser.add_argument('--expo-mdl-name', type=str, default='frac-nbr-expo-0.50')
     parser.add_argument('--rand-mdl-name', type=str, nargs='+',
@@ -47,7 +48,10 @@ def get_scatter_title(net_mdl_saved):
         return f'{prefix}: Barabasi-Albert'
     if 'er' in net_mdl_saved:
         return f'{prefix}: Erdos-Renyi'
-    
+
+    return f'{prefix}: {net_mdl_saved}'    
+
+
 def scatterplt_alloc(args):
     fig, ax = plt.subplots(2, 2, figsize=(8, 8))
 
@@ -56,7 +60,14 @@ def scatterplt_alloc(args):
             rand_mdl_name_full = f'{rand_mdl_name}_{args.fitness_fn_name}'
         else:
             rand_mdl_name_full = rand_mdl_name
-        in_subdir = Path(args.input_dir) / 'plotting_input' / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
+        
+        in_subdir = Path(args.input_dir) / 'plotting_input' / f'{args.net_mdl_saved}' 
+        
+        if args.addhealth:
+            in_subdir = in_subdir / f'it-{args.n_iters}_tau-{args.tau}'
+        else:
+            in_subdir = in_subdir / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
+
         in_fname = f'rand-{rand_mdl_name_full}_expo-{args.expo_mdl_name}_xaxis-{args.xaxis_fn_name}_yaxis-{args.yaxis_fn_name}.pkl'
         
         if not (in_subdir / in_fname).exists():
@@ -97,7 +108,12 @@ def scatterplt_alloc(args):
     ncol = len(args.rand_mdl_name) // 2
     fig.legend(handles, labels, loc='lower center', ncol=ncol, bbox_to_anchor=(0.5, -0.1))
     
-    out_dir= Path(args.out_dir) / f'{args.net_mdl_saved}' / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
+    out_dir= Path(args.out_dir) / f'{args.net_mdl_saved}' 
+    if args.addhealth:
+        out_dir = out_dir / f'it-{args.n_iters}_tau-{args.tau}'
+    else:
+        out_dir = out_dir / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
+ 
     expo_mdl_full_name = mdl_names['expo_mdl']
     out_fname = f'{args.net_mdl_saved}_{expo_mdl_full_name}_{args.fitness_fn_name}.png'
     if not out_dir.exists():
