@@ -8,7 +8,7 @@ do
     do 
         for tau in 0.0 0.4 0.8
         do
-            for n_iters in 100 500 1000 
+            for n_iters in 100 500 
             do 
                 python3 -m simulate_outcomes --n $n --tau $tau --net-mdl-saved $net --n-iters $n_iters
             done

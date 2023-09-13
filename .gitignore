@@ -4,12 +4,10 @@ __pycache__
 .DS_Store
 lib
 *data/
-figs/
-figs_misspec/
-output/
-output_misspec/
+figs*/
+output*/
 csvs/
 notebooks/
-plotting/*_input
+plotting/*_input*
 stats361-env
 addhealth/

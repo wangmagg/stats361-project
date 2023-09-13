@@ -122,26 +122,25 @@ if __name__ == "__main__":
         print(f'Running simulations for: {out_dir / out_fname}')
         all_trial_res = []
         for (y_0, y_1) in tqdm(y_all):
-                
-                if isinstance(expo_mdl, list) and isinstance(outcome_mdl, list):
-                    for r, e in zip(rand_mdl, expo_mdl):
-                        assignment = r(y_0)
-                        for o in outcome_mdl:
-                            trial_res = perform_trial(((y_0, y_1), assignment), e, r, o, estimator, args.tau)
-                            all_trial_res.append(trial_res)
-                elif isinstance(expo_mdl, list):
-                    for r, e in zip(rand_mdl, expo_mdl):
-                        assignment = r(y_0)
-                        trial_res = perform_trial(((y_0, y_1), assignment), e, r, outcome_mdl, estimator, args.tau)
-                        all_trial_res.append(trial_res)
-                elif isinstance(outcome_mdl, list):
+            if isinstance(expo_mdl, list) and isinstance(outcome_mdl, list):
+                for r, e in zip(rand_mdl, expo_mdl):
+                    assignment = r(y_0)
                     for o in outcome_mdl:
-                        assignment = rand_mdl(y_0)
-                        trial_res = perform_trial(((y_0, y_1), assignment), expo_mdl, rand_mdl, o, estimator, args.tau)
+                        trial_res = perform_trial(((y_0, y_1), assignment), e, r, o, estimator, args.tau)
                         all_trial_res.append(trial_res)
-                else:
-                    assignment = rand_mdl(y_0)
-                    trial_res = perform_trial(((y_0, y_1), assignment), expo_mdl, rand_mdl, outcome_mdl, estimator, args.tau)
+            elif isinstance(expo_mdl, list):
+                for r, e in zip(rand_mdl, expo_mdl):
+                    assignment = r(y_0)
+                    trial_res = perform_trial(((y_0, y_1), assignment), e, r, outcome_mdl, estimator, args.tau)
                     all_trial_res.append(trial_res)
+            elif isinstance(outcome_mdl, list):
+                for o in outcome_mdl:
+                    assignment = rand_mdl(y_0)
+                    trial_res = perform_trial(((y_0, y_1), assignment), expo_mdl, rand_mdl, o, estimator, args.tau)
+                    all_trial_res.append(trial_res)
+            else:
+                assignment = rand_mdl(y_0)
+                trial_res = perform_trial(((y_0, y_1), assignment), expo_mdl, rand_mdl, outcome_mdl, estimator, args.tau)
+                all_trial_res.append(trial_res)
 
         save_trial_res(args, all_trial_res, out_dir, out_fname)
