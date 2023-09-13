@@ -66,8 +66,8 @@ def config():
 
     misspec_args = parser.add_argument_group('misspec')
     misspec_args.add_argument('--misspec-type', type=str, default='add', choices=['add', 'remove', 'add-remove'])
-    misspec_args.add_argument('--p-remove', type=float, default=0.05)
-    misspec_args.add_argument('--p-add', type=float, default=0.05)
+    misspec_args.add_argument('--p-remove', nargs='+', type=float, default=0.05)
+    misspec_args.add_argument('--p-add', nargs='+', type=float, default=0.05)
 
     args = parser.parse_args()
 
@@ -122,21 +122,42 @@ if __name__ == "__main__":
     misspec_name = get_misspec_name(args)
     
     expo_mdl = get_expo_model(args)
-    rand_mdl = get_rand_model(args, A_misspec, dists_misspec, expo_mdl)
     outcome_mdl = get_outcome_model(args, expo_mdl, A)
-    estimator = get_estimator(args)
 
-    out_dir = Path(args.out_dir) / misspec_name / args.net_mdl_saved / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
-    out_fname = f'{args.rand_mdl_name}.pkl'
+    for A_m, d_m, m_name in zip(A_misspec, dists_misspec, misspec_name):
+        print(A_m)
+        rand_mdl = get_rand_model(args, A_m, d_m, expo_mdl)
+        estimator = get_estimator(args)
 
-    if (out_dir / out_fname).exists():
-        print(f'{out_dir / out_fname} already exists! Skipping...')
-    else:
-        print(f'Running simulations for: {out_dir / out_fname}')
-        all_trial_res = []
-        for (y_0, y_1) in tqdm(y_all):
-                assignment = rand_mdl(y_0)
-                trial_res = perform_trial(((y_0, y_1), assignment), expo_mdl, rand_mdl, outcome_mdl, estimator, args.tau)
-                all_trial_res.append(trial_res)
+        out_dir = Path(args.out_dir) / m_name / args.net_mdl_saved / f'n-{args.n}_it-{args.n_iters}_tau-{args.tau}'
+        out_fname = f'{args.rand_mdl_name}.pkl'
 
-        save_trial_res(args, all_trial_res, out_dir, out_fname)
+        if (out_dir / out_fname).exists():
+            print(f'{out_dir / out_fname} already exists! Skipping...')
+        else:
+            print(f'Running simulations for: {out_dir / out_fname}')
+
+            all_trial_res = []
+            for (y_0, y_1) in tqdm(y_all):
+                if isinstance(expo_mdl, list) and isinstance(outcome_mdl, list):
+                    for r, e in zip(rand_mdl, expo_mdl):
+                        assignment = r(y_0)
+                        for o in outcome_mdl:
+                            trial_res = perform_trial(((y_0, y_1), assignment), e, r, o, estimator, args.tau)
+                            all_trial_res.append(trial_res)
+                elif isinstance(expo_mdl, list):
+                    for r, e in zip(rand_mdl, expo_mdl):
+                        assignment = r(y_0)
+                        trial_res = perform_trial(((y_0, y_1), assignment), e, r, outcome_mdl, estimator, args.tau)
+                        all_trial_res.append(trial_res)
+                elif isinstance(outcome_mdl, list):
+                    for o in outcome_mdl:
+                        assignment = rand_mdl(y_0)
+                        trial_res = perform_trial(((y_0, y_1), assignment), expo_mdl, rand_mdl, o, estimator, args.tau)
+                        all_trial_res.append(trial_res)
+                else:
+                    assignment = rand_mdl(y_0)
+                    trial_res = perform_trial(((y_0, y_1), assignment), expo_mdl, rand_mdl, outcome_mdl, estimator, args.tau)
+                    all_trial_res.append(trial_res)
+
+            save_trial_res(args, all_trial_res, out_dir, out_fname)
